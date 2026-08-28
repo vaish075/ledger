@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ledger — Student Planner</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --paper:#FBF7EF;
+  --paper-dim:#F3EEE1;
+  --surface:#FFFFFF;
+  --ink:#221F2E;
+  --ink-soft:#6E6A7C;
+  --ink-faint:#A5A0B3;
+  --line:#E6E0D0;
+  --primary:#33368C;
+  --primary-ink:#EDEEFA;
+  --amber:#E8A23B;
+  --amber-ink:#FCEFD9;
+  --green:#2E9A63;
+  --green-ink:#E0F5E9;
+  --yellow:#D9A400;
+  --yellow-ink:#FBF0D3;
+  --red:#D14B39;
+  --red-ink:#FBE3DE;
+  --shadow: 0 1px 2px rgba(34,31,46,0.06), 0 6px 20px rgba(34,31,46,0.06);
+  --radius: 14px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.serif{font-family:'Fraunces',serif;}
+
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+
+/* ---------- Layout ---------- */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:240px;
+  flex-shrink:0;
+  background:var(--ink);
+  color:#EDEBF5;
+  display:flex;
+  flex-direction:column;
+  padding:22px 14px;
+  position:sticky;
+  top:0;
+  height:100vh;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 8px 22px 8px;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+  margin-bottom:16px;
+}
+.brand .mark{
+  width:30px;height:30px;border-radius:8px;
+  background:linear-gradient(135deg,var(--amber),#f0c274);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+  flex-shrink:0;
+  transform:rotate(-4deg);
+}
+.brand .name{font-family:'Fraunces',serif;font-size:19px;font-weight:600;letter-spacing:0.2px;}
+.brand .sub{font-size:10px;color:#B7B2C9;text-transform:uppercase;letter-spacing:1.2px;margin-top:1px;}
+
+.nav{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto;}
+.nav button{
+  display:flex;align-items:center;gap:10px;
+  background:none;border:none;color:#CFCBE0;
+  padding:9px 10px;border-radius:9px;
+  font-size:13.5px;font-weight:500;text-align:left;
+  transition:background .12s, color .12s;
+}
+.nav button:hover{background:rgba(255,255,255,0.06);color:#fff;}
+.nav button.active{background:rgba(255,255,255,0.12);color:#fff;}
+.nav .icon{width:18px;text-align:center;font-size:14px;}
+
+.sidebar-footer{border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;margin-top:10px;}
+.sidebar-footer .streak{font-size:11.5px;color:#B7B2C9;margin-bottom:6px;}
+.db-indicator{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10.5px;color:#85DE9E;background:rgba(46,154,99,0.18);
+  padding:3px 7px;border-radius:6px;margin-bottom:10px;
+}
+.db-dot{width:6px;height:6px;border-radius:50%;background:#4ADE80;box-shadow:0 0 6px #4ADE80;}
+.sidebar-footer button{
+  width:100%;background:none;border:1px solid rgba(255,255,255,0.15);
+  color:#B7B2C9;font-size:11.5px;padding:7px;border-radius:8px;
+  transition:all .15s;
+}
+.sidebar-footer button:hover{border-color:rgba(255,255,255,0.35);color:#fff;}
+
+.main{flex:1;padding:34px 40px 60px;max-width:1180px;}
+
+@media (max-width:860px){
+  .app{flex-direction:column;}
+  .sidebar{width:100%;height:auto;position:relative;flex-direction:row;align-items:center;padding:12px 14px;overflow-x:auto;}
+  .brand{border:none;margin:0 14px 0 0;padding:0;}
+  .nav{flex-direction:row;flex:none;}
+  .nav button{white-space:nowrap;}
+  .sidebar-footer{display:none;}
+  .main{padding:20px 16px 50px;}
+}
+
+/* ---------- Typography ---------- */
+h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+.page-title{font-size:26px;font-weight:600;}
+.page-sub{color:var(--ink-soft);font-size:13.5px;margin-top:4px;}
+
+/* ---------- Cards / common ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0;}
+@media(max-width:900px){.stat-row{grid-template-columns:repeat(2,1fr);}}
+.stat{
+  padding:16px 18px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface);
+}
+.stat .num{font-family:'Fraunces',serif;font-size:28px;font-weight:600;}
+.stat .lbl{font-size:11.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;}
+
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  border-radius:9px;padding:9px 15px;font-size:13px;font-weight:600;border:1px solid transparent;
+  transition: all .12s;
+}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:#292c73;}
+.btn-secondary{background:var(--paper-dim);border:1px solid var(--line);color:var(--ink);}
+.btn-secondary:hover{background:var(--line);}
+.btn-ghost{background:var(--surface);border:1px solid var(--line);color:var(--ink);}
+.btn-ghost:hover{border-color:var(--ink-faint);}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:7px;}
+.btn-danger{background:var(--red-ink);color:var(--red);}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:30px 0 12px;}
+.section-head h3{font-size:15.5px;font-weight:600;}
+
+/* ---------- Badges ---------- */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;}
+.pri-high{background:var(--red-ink);color:var(--red);}
+.pri-medium{background:var(--yellow-ink);color:#8a6a00;}
+.pri-low{background:var(--green-ink);color:var(--green);}
+.status-not-started{background:#EDEBF5;color:#5A567A;}
+.status-in-progress{background:var(--amber-ink);color:#8a5a12;}
+.status-completed{background:var(--green-ink);color:var(--green);}
+
+.cat-study{background:#DCE3FF;color:#2A3F8F;}
+.cat-assignments{background:#FFE7C2;color:#8A5A0A;}
+.cat-projects{background:#D7F5E3;color:#1F7A4C;}
+.cat-exams{background:#FFD3D0;color:#B3352A;}
+.cat-college{background:#E7DBFF;color:#5B3AA0;}
+.cat-internships{background:#D0F0F5;color:#10707D;}
+.cat-personal{background:#F4DCEB;color:#93336F;}
+
+/* ---------- Task list ---------- */
+.filters-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 4px;}
+.filters-bar input[type=text]{
+  flex:1;min-width:180px;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:13px;
+}
+.filters-bar select{
+  padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;color:var(--ink-soft);
+}
+
+.task-list{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.task-card{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  transition:box-shadow .12s;
+}
+.task-card:hover{box-shadow:var(--shadow);}
+.task-card.completed{opacity:0.55;}
+.task-check{
+  width:20px;height:20px;border-radius:6px;border:2px solid var(--ink-faint);flex-shrink:0;margin-top:2px;
+  display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--surface);cursor:pointer;
+  user-select:none;
+}
+.task-check.in-progress{border-color:var(--amber);background:var(--amber-ink);}
+.task-check.completed{border-color:var(--green);background:var(--green);color:#fff;}
+.task-main{flex:1;min-width:0;cursor:pointer;}
+.task-name{font-weight:600;font-size:14px;}
+.task-name.strike{text-decoration:line-through;}
+.task-desc{font-size:12.5px;color:var(--ink-soft);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.task-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+.task-date{font-size:11.5px;color:var(--ink-soft);}
+.task-date.overdue{color:var(--red);font-weight:600;}
+.empty-state{padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:13.5px;}
+.empty-state .big{font-size:30px;margin-bottom:8px;}
+
+/* ---------- Progress bars ---------- */
+.pbar{height:9px;border-radius:99px;background:var(--paper-dim);overflow:hidden;position:relative;}
+.pbar > div{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--amber),#f0c274);}
+.pbar-lg{height:13px;}
+
+/* ---------- Modal ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(34,31,46,0.45);backdrop-filter:blur(2px);
+  display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;
+}
+.modal{
+  background:var(--surface);border-radius:18px;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;
+  padding:26px 28px 22px;box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+.modal h2{font-size:19px;margin-bottom:16px;}
+.field{margin-bottom:13px;}
+.field label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+.field input, .field select, .field textarea{
+  width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--paper);font-size:13.5px;color:var(--ink);
+}
+.field textarea{resize:vertical;min-height:56px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pri-picker{display:flex;gap:8px;}
+.pri-picker button{flex:1;padding:8px;border-radius:9px;border:2px solid var(--line);background:var(--surface);font-size:12.5px;font-weight:600;}
+.pri-picker button.sel-high{border-color:var(--red);background:var(--red-ink);}
+.pri-picker button.sel-medium{border-color:var(--yellow);background:var(--yellow-ink);}
+.pri-picker button.sel-low{border-color:var(--green);background:var(--green-ink);}
+.modal-actions{display:flex;justify-content:space-between;align-items:center;margin-top:18px;}
+
+/* ---------- Auth screen ---------- */
+.auth-wrap{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 20%, #FDF9EF 0%, var(--paper) 55%);
+  padding:20px;
+}
+.auth-card{
+  width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  box-shadow:0 20px 60px rgba(34,31,46,0.10);padding:30px 28px 24px;
+}
+.auth-tabs{display:flex;gap:4px;background:var(--paper-dim);padding:3px;border-radius:10px;margin-bottom:18px;}
+.auth-tabs button{flex:1;padding:8px;border:none;background:none;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+.auth-tabs button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+.auth-error{background:var(--red-ink);color:var(--red);font-size:12.5px;padding:9px 12px;border-radius:9px;margin-bottom:14px;line-height:1.4;}
+.auth-note{font-size:11.5px;color:var(--ink-soft);margin-top:16px;line-height:1.5;text-align:center;}
+
+/* ---------- Calendar ---------- */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin:16px 0 10px;}
+.cal-nav{display:flex;align-items:center;gap:10px;}
+.cal-tabs{display:flex;gap:4px;background:var(--paper-dim);padding:3px;border-radius:9px;}
+.cal-tabs button{padding:6px 13px;border:none;background:none;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--ink-soft);}
+.cal-tabs button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-dow{font-size:10.5px;text-transform:uppercase;color:var(--ink-faint);text-align:center;padding-bottom:4px;letter-spacing:.5px;}
+.cal-cell{
+  min-height:78px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:6px;font-size:11.5px;cursor:pointer;
+}
+.cal-cell.muted{opacity:0.35;}
+.cal-cell.today{border-color:var(--primary);border-width:2px;}
+.cal-cell.selected{background:var(--primary-ink);}
+.cal-cell .dnum{font-weight:600;font-family:'JetBrains Mono',monospace;}
+.cal-dots{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap;}
+.cal-dot{width:6px;height:6px;border-radius:50%;}
+
+/* ---------- Timer ---------- */
+.timer-wrap{display:flex;flex-direction:column;align-items:center;padding:40px 20px;}
+.timer-ring{
+  width:240px;height:240px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  background: conic-gradient(var(--primary) calc(var(--pct, 0)*1%), var(--paper-dim) 0);
+}
+.timer-ring::after{content:"";position:absolute;inset:14px;border-radius:50%;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);}
+.timer-inner{position:relative;z-index:1;text-align:center;}
+.timer-time{font-family:'JetBrains Mono',monospace;font-size:44px;font-weight:600;}
+.timer-mode{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);margin-top:4px;}
+.timer-controls{display:flex;gap:10px;margin-top:24px;}
+.timer-controls button{padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:600;}
+
+/* ---------- Subjects/progress ---------- */
+.subj-row{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);}
+.subj-row:last-child{border-bottom:none;}
+.subj-name{width:150px;font-weight:600;font-size:13.5px;flex-shrink:0;}
+.subj-pct{width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink-soft);}
+
+/* ---------- Table (assignments) ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);padding:8px 10px;border-bottom:1px solid var(--line);}
+table td{padding:10px;border-bottom:1px solid var(--line);}
+table tr:last-child td{border-bottom:none;}
+
+/* ---------- Exam cards ---------- */
+.exam-card{padding:16px 18px;border-radius:14px;border:1px solid var(--line);background:var(--surface);margin-bottom:12px;}
+.topic-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;}
+.topic-row input{width:15px;height:15px;cursor:pointer;}
+.topic-row.done span{text-decoration:line-through;color:var(--ink-faint);}
+
+.chip-add{display:flex;gap:6px;}
+.chip-add input{flex:1;padding:7px 10px;border-radius:8px;border:1px solid var(--line);font-size:12.5px;}
+
+.loading{display:flex;align-items:center;justify-content:center;height:60vh;color:var(--ink-faint);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div id="app-root"></div>
+<input type="file" id="db-import-file" accept=".json" style="display:none;" />
+
+<script>
+/* ============================================================
+   CRYPTOGRAPHY (Pure JS Standard SHA-256)
+============================================================ */
+function sha256(ascii) {
+  function rightRotate(value, amount) {
+    return (value >>> amount) | (value << (32 - amount));
+  }
+  const mathPow = Math.pow;
+  let lengthProperty = 'length';
+  let i, j;
+  let result = '';
+
+  let hash = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+  ];
+
+  const k = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+
+  const composite = [];
+  const asciiBitLength = (ascii || '')[lengthProperty] * 8;
+
+  for (i = 0; i < ascii[lengthProperty]; i++) {
+    composite[i >> 2] |= ascii.charCodeAt(i) << ((3 - (i % 4)) * 8);
+  }
+  composite[ascii[lengthProperty] >> 2] |= 0x80 << ((3 - (ascii[lengthProperty] % 4)) * 8);
+  composite[(((ascii[lengthProperty] + 8) >> 6) << 4) + 15] = asciiBitLength;
+
+  for (i = 0; i < composite[lengthProperty]; i += 16) {
+    const w = composite.slice(i, i + 16);
+    let a = hash[0], b = hash[1], c = hash[2], d = hash[3],
+        e = hash[4], f = hash[5], g = hash[6], h = hash[7];
+
+    for (j = 0; j < 64; j++) {
+      if (j >= 16) {
+        const s0 = rightRotate(w[j - 15], 7) ^ rightRotate(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+        const s1 = rightRotate(w[j - 2], 17) ^ rightRotate(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+        w[j] = (w[j - 16] + s0 + w[j - 7] + s1) | 0;
+      }
+      const s1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+      const ch = (e & f) ^ ((~e) & g);
+      const temp1 = (h + s1 + ch + k[j] + (w[j] | 0)) | 0;
+      const s0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const temp2 = (s0 + maj) | 0;
+
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) | 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) | 0;
+    }
+
+    hash[0] = (hash[0] + a) | 0;
+    hash[1] = (hash[1] + b) | 0;
+    hash[2] = (hash[2] + c) | 0;
+    hash[3] = (hash[3] + d) | 0;
+    hash[4] = (hash[4] + e) | 0;
+    hash[5] = (hash[5] + f) | 0;
+    hash[6] = (hash[6] + g) | 0;
+    hash[7] = (hash[7] + h) | 0;
+  }
+
+  for (i = 0; i < 8; i++) {
+    for (j = 3; j >= 0; j--) {
+      const byteVal = (hash[i] >> (j * 8)) & 255;
+      result += (byteVal < 16 ? '0' : '') + byteVal.toString(16);
+    }
+  }
+  return result;
+}
+
+/* ============================================================
+   DATABASE LAYER: IndexedDB + LocalStorage Hybrid Engine
+============================================================ */
+class PlannerDatabase {
+  constructor(dbName = 'LedgerPlannerDB', version = 1) {
+    this.dbName = dbName;
+    this.version = version;
+    this.db = null;
+    this.useLocalStorageFallback = false;
+  }
+
+  async init() {
+    return new Promise((resolve) => {
+      let isResolved = false;
+      const done = () => {
+        if (!isResolved) {
+          isResolved = true;
+          resolve(true);
+        }
+      };
+
+      const safetyTimer = setTimeout(() => {
+        if (!this.db) {
+          this.useLocalStorageFallback = true;
+          done();
+        }
+      }, 500);
+
+      try {
+        if (!('indexedDB' in window)) {
+          this.useLocalStorageFallback = true;
+          clearTimeout(safetyTimer);
+          return done();
+        }
+
+        const request = indexedDB.open(this.dbName, this.version);
+
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('accounts')) {
+            db.createObjectStore('accounts', { keyPath: 'username' });
+          }
+          if (!db.objectStoreNames.contains('tasks')) {
+            const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
+            taskStore.createIndex('username', 'username', { unique: false });
+            taskStore.createIndex('dueDate', 'dueDate', { unique: false });
+            taskStore.createIndex('category', 'category', { unique: false });
+            taskStore.createIndex('status', 'status', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('exams')) {
+            const examStore = db.createObjectStore('exams', { keyPath: 'id' });
+            examStore.createIndex('username', 'username', { unique: false });
+            examStore.createIndex('examDate', 'examDate', { unique: false });
+          }
+          if (!db.objectStoreNames.contains('metadata')) {
+            db.createObjectStore('metadata', { keyPath: 'key' });
+          }
+        };
+
+        request.onsuccess = (e) => {
+          clearTimeout(safetyTimer);
+          this.db = e.target.result;
+          done();
+        };
+
+        request.onerror = () => {
+          clearTimeout(safetyTimer);
+          this.useLocalStorageFallback = true;
+          done();
+        };
+
+        request.onblocked = () => {
+          clearTimeout(safetyTimer);
+          this.useLocalStorageFallback = true;
+          done();
+        };
+      } catch (err) {
+        clearTimeout(safetyTimer);
+        this.useLocalStorageFallback = true;
+        done();
+      }
+    });
+  }
+
+  async get(storeName, key) {
+    if (this.useLocalStorageFallback || !this.db) {
+      try {
+        const raw = localStorage.getItem(`${this.dbName}:${storeName}:${key}`);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = this.db.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  async getAll(storeName) {
+    if (this.useLocalStorageFallback || !this.db) {
+      try {
+        const results = [];
+        const prefix = `${this.dbName}:${storeName}:`;
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(prefix)) {
+            results.push(JSON.parse(localStorage.getItem(k)));
+          }
+        }
+        return results;
+      } catch (e) { return []; }
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = this.db.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      } catch (e) {
+        resolve([]);
+      }
+    });
+  }
+
+  async getAllByIndex(storeName, indexName, value) {
+    if (this.useLocalStorageFallback || !this.db) {
+      const all = await this.getAll(storeName);
+      return all.filter(item => item[indexName] === value);
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = this.db.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const index = store.index(indexName);
+        const req = index.getAll(value);
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => {
+          this.getAll(storeName).then(items => resolve(items.filter(it => it[indexName] === value)));
+        };
+      } catch (e) {
+        this.getAll(storeName).then(items => resolve(items.filter(it => it[indexName] === value)));
+      }
+    });
+  }
+
+  async put(storeName, value) {
+    const key = value.username || value.id || value.key;
+    if (this.useLocalStorageFallback || !this.db) {
+      try {
+        localStorage.setItem(`${this.dbName}:${storeName}:${key}`, JSON.stringify(value));
+        return true;
+      } catch (e) { return false; }
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = this.db.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const req = store.put(value);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => {
+          localStorage.setItem(`${this.dbName}:${storeName}:${key}`, JSON.stringify(value));
+          resolve(true);
+        };
+      } catch (e) {
+        localStorage.setItem(`${this.dbName}:${storeName}:${key}`, JSON.stringify(value));
+        resolve(true);
+      }
+    });
+  }
+
+  async delete(storeName, key) {
+    if (this.useLocalStorageFallback || !this.db) {
+      try {
+        localStorage.removeItem(`${this.dbName}:${storeName}:${key}`);
+        return true;
+      } catch (e) { return false; }
+    }
+    return new Promise((resolve) => {
+      try {
+        const tx = this.db.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const req = store.delete(key);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  }
+
+  async clearStore(storeName) {
+    try {
+      const prefix = `${this.dbName}:${storeName}:`;
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) keys.push(k);
+      }
+      keys.forEach(k => localStorage.removeItem(k));
+    } catch(e){}
+
+    if (this.db) {
+      return new Promise((resolve) => {
+        try {
+          const tx = this.db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          const req = store.clear();
+          req.onsuccess = () => resolve(true);
+          req.onerror = () => resolve(true);
+        } catch (e) {
+          resolve(true);
+        }
+      });
+    }
+    return true;
+  }
+
+  async exportJSON() {
+    const [accounts, tasks, exams, metadata] = await Promise.all([
+      this.getAll('accounts'),
+      this.getAll('tasks'),
+      this.getAll('exams'),
+      this.getAll('metadata')
+    ]);
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      database: this.dbName,
+      data: { accounts, tasks, exams, metadata }
+    };
+  }
+
+  async importJSON(dump) {
+    if (!dump || !dump.data) throw new Error('Invalid database backup format.');
+    await Promise.all([
+      this.clearStore('accounts'),
+      this.clearStore('tasks'),
+      this.clearStore('exams'),
+      this.clearStore('metadata')
+    ]);
+
+    for (const acc of dump.data.accounts || []) await this.put('accounts', acc);
+    for (const t of dump.data.tasks || []) await this.put('tasks', t);
+    for (const ex of dump.data.exams || []) await this.put('exams', ex);
+    for (const m of dump.data.metadata || []) await this.put('metadata', m);
+    return true;
+  }
+}
+
+const DB = new PlannerDatabase();
+
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  loaded: false,
+  tasks: [],
+  exams: [],
+  userName: 'there',
+  accounts: [],
+  session: { loggedIn:false, username:null, name:null },
+  authMode: 'login', // 'login' | 'register'
+  authError: '',
+  view: 'dashboard',
+  filters: { search:'', category:'all', priority:'all', status:'all', subject:'all', due:'all' },
+  calendar: { tab:'month', month:new Date().getMonth(), year:new Date().getFullYear(), selectedDate: todayStr() },
+  modal: null,
+  timer: { mode:'study', secondsLeft:25*60, running:false, cycles:0, intervalId:null, studyMins:25, breakMins:5 },
+};
+
+/* ============================================================
+   CONSTANTS
+============================================================ */
+const CATEGORIES = [
+  {key:'study', label:'Study', emoji:'📚'},
+  {key:'assignments', label:'Assignments', emoji:'📝'},
+  {key:'projects', label:'Projects', emoji:'🧪'},
+  {key:'exams', label:'Exams', emoji:'📖'},
+  {key:'college', label:'College', emoji:'🏫'},
+  {key:'internships', label:'Internships', emoji:'💻'},
+  {key:'personal', label:'Personal', emoji:'👤'},
+];
+const PRIORITIES = [
+  {key:'high', label:'High', emoji:'🔴'},
+  {key:'medium', label:'Medium', emoji:'🟡'},
+  {key:'low', label:'Low', emoji:'🟢'},
+];
+const STATUSES = [
+  {key:'not-started', label:'Not started', emoji:'☐'},
+  {key:'in-progress', label:'In progress', emoji:'🔄'},
+  {key:'completed', label:'Completed', emoji:'✅'},
+];
+const NAV = [
+  {key:'dashboard', label:'Dashboard', icon:'🏠'},
+  {key:'tasks', label:'My Tasks', icon:'✅'},
+  {key:'calendar', label:'Calendar', icon:'📅'},
+  {key:'subjects', label:'Progress', icon:'📊'},
+  {key:'assignments', label:'Assignments', icon:'📝'},
+  {key:'exams', label:'Exam Planner', icon:'📖'},
+  {key:'timer', label:'Study Timer', icon:'⏱️'},
+];
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function catMeta(k){ return CATEGORIES.find(c=>c.key===k) || CATEGORIES[0]; }
+function priMeta(k){ return PRIORITIES.find(p=>p.key===k) || PRIORITIES[1]; }
+function statusMeta(k){ return STATUSES.find(s=>s.key===k) || STATUSES[0]; }
+function esc(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function fmtDate(dstr){
+  if(!dstr) return '—';
+  const d = new Date(dstr+'T00:00:00');
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+}
+function fmtDateLong(dstr){
+  if(!dstr) return '—';
+  const d = new Date(dstr+'T00:00:00');
+  return d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function isOverdue(t){ return t.dueDate && t.dueDate < todayStr() && t.status !== 'completed'; }
+function daysFromToday(dstr){
+  if(!dstr) return null;
+  const a = new Date(todayStr()+'T00:00:00'), b = new Date(dstr+'T00:00:00');
+  return Math.round((b-a)/86400000);
+}
+function greeting(){
+  const h = new Date().getHours();
+  if(h<12) return 'Good morning';
+  if(h<17) return 'Good afternoon';
+  return 'Good evening';
+}
+function within7Days(dstr){
+  const df = daysFromToday(dstr);
+  return df!==null && df>=0 && df<=7;
+}
+
+/* ============================================================
+   DATABASE SYNC ACTIONS (Persist only entered data)
+============================================================ */
+async function saveTaskToDB(task){
+  if(!state.session.username) return;
+  task.username = state.session.username;
+  await DB.put('tasks', task);
+}
+
+async function removeTaskFromDB(id){
+  await DB.delete('tasks', id);
+}
+
+async function saveExamToDB(exam){
+  if(!state.session.username) return;
+  exam.username = state.session.username;
+  await DB.put('exams', exam);
+}
+
+async function removeExamFromDB(id){
+  await DB.delete('exams', id);
+}
+
+async function addTaskNext(task){
+  const next = {
+    ...task,
+    id: uid(),
+    status: 'not-started',
+    createdAt: Date.now(),
+    completedAt: null,
+    username: state.session.username
+  };
+  const d = new Date(task.dueDate+'T00:00:00');
+  if(task.recurring === 'daily') d.setDate(d.getDate()+1);
+  else if(task.recurring === 'weekly') d.setDate(d.getDate()+7);
+  next.dueDate = d.toISOString().slice(0,10);
+  state.tasks.push(next);
+  await saveTaskToDB(next);
+}
+
+async function cycleStatus(id){
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+  const order = ['not-started','in-progress','completed'];
+  const idx = order.indexOf(t.status);
+  const wasCompleted = t.status === 'completed';
+  t.status = order[(idx+1)%order.length];
+  if(t.status === 'completed'){
+    t.completedAt = Date.now();
+    if(t.recurring && t.recurring !== 'none'){ await addTaskNext(t); }
+  } else if(wasCompleted){
+    t.completedAt = null;
+  }
+  await saveTaskToDB(t);
+  render();
+}
+
+async function deleteTask(id){
+  state.tasks = state.tasks.filter(t=>t.id!==id);
+  await removeTaskFromDB(id);
+  closeModal();
+  render();
+}
+
+async function saveTaskFromForm(form){
+  const data = {
+    name: form.name.value.trim(),
+    description: form.description.value.trim(),
+    subject: form.subject.value.trim(),
+    category: form.category.value,
+    dueDate: form.dueDate.value,
+    dueTime: form.dueTime.value,
+    priority: form._priority,
+    status: form.status.value,
+    recurring: form.recurring.value,
+    notes: form.notes.value.trim(),
+    links: form.links.value.split(',').map(s=>s.trim()).filter(Boolean),
+    username: state.session.username
+  };
+  if(!data.name) return false;
+  if(state.modal.mode === 'edit'){
+    const t = state.tasks.find(x=>x.id===state.modal.task.id);
+    Object.assign(t, data);
+    if(data.status === 'completed' && !t.completedAt) t.completedAt = Date.now();
+    if(data.status !== 'completed') t.completedAt = null;
+    await saveTaskToDB(t);
+  } else {
+    const newTask = { id:uid(), createdAt:Date.now(), completedAt: data.status==='completed'?Date.now():null, ...data };
+    state.tasks.push(newTask);
+    await saveTaskToDB(newTask);
+  }
+  return true;
+}
+
+/* ============================================================
+   AUTH SCREEN
+============================================================ */
+function renderAuthScreen(){
+  const mode = state.authMode;
+  const accountsExist = (state.accounts && state.accounts.length > 0);
+
+  return `
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="brand" style="border:none;margin:0 0 18px;padding:0;justify-content:center;">
+        <div class="mark">📔</div>
+        <div>
+          <div class="name" style="color:var(--ink);">Ledger</div>
+          <div class="sub" style="color:var(--ink-soft);">Student Planner</div>
+        </div>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" class="${mode==='login'?'active':''}" data-auth-tab="login">Log in</button>
+        <button type="button" class="${mode==='register'?'active':''}" data-auth-tab="register">Register</button>
+      </div>
+
+      ${state.authError ? `<div class="auth-error">${esc(state.authError)}</div>` : ''}
+
+      ${mode==='login' ? `
+        <form id="login-form">
+          <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" required autocomplete="username" placeholder="e.g. vaishnavi" autofocus />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••" />
+          </div>
+          <button type="submit" id="login-btn" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">Log in</button>
+        </form>
+        ${!accountsExist ? `
+          <div style="margin-top:14px;background:var(--amber-ink);color:#8A5A0A;padding:9px 12px;border-radius:9px;font-size:12px;text-align:center;">
+            👋 No account registered yet.<br>Click <strong>Register</strong> above to create your account.
+          </div>
+        ` : ''}
+      ` : `
+        <form id="register-form">
+          <div class="field">
+            <label>Your Name</label>
+            <input type="text" name="name" required placeholder="e.g. Vaishnavi" autofocus />
+          </div>
+          <div class="field">
+            <label>Choose a Username</label>
+            <input type="text" name="username" required autocomplete="username" placeholder="e.g. vaishnavi" />
+          </div>
+          <div class="field">
+            <label>Choose a Password</label>
+            <input type="password" name="password" required autocomplete="new-password" placeholder="••••••••" />
+          </div>
+          <button type="submit" id="register-btn" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">Create Account</button>
+        </form>
+      `}
+
+      <div class="auth-note">
+        💾 Backed by local persistent database. Starts completely blank and stores data only when you enter tasks.
+      </div>
+    </div>
+  </div>`;
+}
+
+function bindAuthEvents(){
+  document.querySelectorAll('[data-auth-tab]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ 
+      state.authMode = btn.dataset.authTab; 
+      state.authError = ''; 
+      render(); 
+    });
+  });
+
+  const loginForm = document.getElementById('login-form');
+  if(loginForm){
+    loginForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const u = loginForm.username.value.trim();
+      const p = loginForm.password.value;
+      const btn = document.getElementById('login-btn');
+      if(btn) { btn.disabled = true; btn.textContent = 'Logging in...'; }
+      await loginUser(u, p);
+      if(btn) { btn.disabled = false; btn.textContent = 'Log in'; }
+    });
+  }
+
+  const registerForm = document.getElementById('register-form');
+  if(registerForm){
+    registerForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const n = registerForm.name.value.trim();
+      const u = registerForm.username.value.trim();
+      const p = registerForm.password.value;
+      const btn = document.getElementById('register-btn');
+      if(btn) { btn.disabled = true; btn.textContent = 'Creating account...'; }
+      await registerUser(n, u, p);
+      if(btn) { btn.disabled = false; btn.textContent = 'Create Account'; }
+    });
+  }
+}
+
+/* ============================================================
+   RENDER ROOT
+============================================================ */
+function render(){
+  const root = document.getElementById('app-root');
+  if(!state.loaded){
+    root.innerHTML = `<div class="loading">Connecting to database…</div>`;
+    return;
+  }
+  if(!state.session.loggedIn){
+    root.innerHTML = renderAuthScreen();
+    bindAuthEvents();
+    return;
+  }
+  root.innerHTML = `
+    <div class="app">
+      ${renderSidebar()}
+      <main class="main">${renderView()}</main>
+    </div>
+    ${state.modal ? renderModal() : ''}
+  `;
+  bindEvents();
+}
+
+function renderSidebar(){
+  return `
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">📔</div>
+      <div>
+        <div class="name">Ledger</div>
+        <div class="sub">Student Planner</div>
+      </div>
+    </div>
+    <nav class="nav">
+      ${NAV.map(n => `<button data-nav="${n.key}" class="${state.view===n.key?'active':''}"><span class="icon">${n.icon}</span> ${n.label}</button>`).join('')}
+    </nav>
+    <div class="sidebar-footer">
+      <div class="db-indicator"><span class="db-dot"></span> Database Connected</div>
+      <div class="streak">Signed in as <strong style="color:#fff;">${esc(state.session.name)}</strong></div>
+      <div class="streak">${state.tasks.filter(t=>t.status==='completed').length} tasks completed</div>
+      
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button data-action="export-db" title="Export database backup JSON" style="flex:1;">⬇ Backup DB</button>
+        <button data-action="import-db" title="Restore database from JSON" style="flex:1;">⬆ Restore</button>
+      </div>
+
+      <div style="display:flex;gap:6px;">
+        <button data-action="reset-data" style="flex:1;">Reset data</button>
+        <button data-action="logout" style="flex:1;">Log out</button>
+      </div>
+    </div>
+  </aside>`;
+}
+
+function renderView(){
+  switch(state.view){
+    case 'dashboard': return renderDashboard();
+    case 'tasks': return renderTasksView();
+    case 'calendar': return renderCalendar();
+    case 'subjects': return renderSubjects();
+    case 'assignments': return renderAssignments();
+    case 'exams': return renderExams();
+    case 'timer': return renderTimer();
+    default: return renderDashboard();
+  }
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
+function renderDashboard(){
+  const t = state.tasks;
+  const remaining = t.filter(x=>x.status!=='completed');
+  const dueToday = t.filter(x=>x.dueDate===todayStr() && x.status!=='completed');
+  const weekAgo = Date.now() - 7*86400000;
+  const completedWeek = t.filter(x=>x.status==='completed' && x.completedAt && x.completedAt>=weekAgo);
+  const overdue = t.filter(isOverdue);
+  const upcoming = t.filter(x=>x.status!=='completed' && x.dueDate && within7Days(x.dueDate) && x.dueDate!==todayStr())
+                    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const todays = t.filter(x=>x.dueDate===todayStr());
+  const completedRecent = t.filter(x=>x.status==='completed').sort((a,b)=>(b.completedAt||0)-(a.completedAt||0)).slice(0,5);
+  const progressPct = t.length ? Math.round((t.filter(x=>x.status==='completed').length/t.length)*100) : 0;
+
+  return `
+    <div class="page-title serif">${greeting()}, ${esc(state.userName)}! 👋</div>
+    <div class="page-sub">${remaining.length} tasks remaining • ${dueToday.length} due today • ${completedWeek.length} completed this week</div>
+
+    <div style="margin-top:18px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-bottom:6px;">
+        <span>Overall progress</span><span class="mono">${progressPct}%</span>
+      </div>
+      <div class="pbar pbar-lg"><div style="width:${progressPct}%"></div></div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="num">${remaining.length}</div><div class="lbl">Tasks left</div></div>
+      <div class="stat"><div class="num">${dueToday.length}</div><div class="lbl">Due today</div></div>
+      <div class="stat"><div class="num">${completedWeek.length}</div><div class="lbl">Completed this week</div></div>
+      <div class="stat"><div class="num" style="${overdue.length?'color:var(--red)':''}">${overdue.length}</div><div class="lbl">Overdue</div></div>
+    </div>
+
+    <div class="section-head"><h3>Today's tasks</h3><button class="btn btn-primary btn-sm" data-action="open-add">+ Add task</button></div>
+    ${renderTaskList(todays, 'No tasks due today. Click "+ Add task" to schedule a task.')}
+
+    <div class="section-head"><h3>Upcoming deadlines (next 7 days)</h3></div>
+    ${renderTaskList(upcoming, 'No upcoming deadlines scheduled.')}
+
+    ${overdue.length ? `
+    <div class="section-head"><h3 style="color:var(--red)">Overdue</h3></div>
+    ${renderTaskList(overdue, '')}` : ''}
+
+    <div class="section-head"><h3>Recently completed</h3></div>
+    ${renderTaskList(completedRecent, 'No completed tasks yet.')}
+  `;
+}
+
+/* ============================================================
+   TASK CARD / LIST
+============================================================ */
+function renderTaskCard(t){
+  const cat = catMeta(t.category), pri = priMeta(t.priority);
+  const overdue = isOverdue(t);
+  return `
+  <div class="task-card ${t.status==='completed'?'completed':''}" data-task-id="${t.id}">
+    <div class="task-check ${t.status}" data-action="cycle-status" data-id="${t.id}">${t.status==='completed'?'✓':(t.status==='in-progress'?'…':'')}</div>
+    <div class="task-main" data-action="open-edit" data-id="${t.id}">
+      <div class="task-name ${t.status==='completed'?'strike':''}">${esc(t.name)}</div>
+      ${t.description ? `<div class="task-desc">${esc(t.description)}</div>` : ''}
+      <div class="task-meta">
+        <span class="badge cat-${t.category}">${cat.emoji} ${cat.label}</span>
+        ${t.subject ? `<span class="badge" style="background:var(--paper-dim);color:var(--ink-soft);">${esc(t.subject)}</span>` : ''}
+        <span class="badge pri-${t.priority}">${pri.emoji} ${pri.label}</span>
+        ${t.recurring && t.recurring!=='none' ? `<span class="badge" style="background:var(--primary-ink);color:var(--primary);">🔁 ${t.recurring}</span>` : ''}
+        ${t.dueDate ? `<span class="task-date ${overdue?'overdue':''}">${overdue?'⚠ ':'📅 '}${fmtDate(t.dueDate)}${t.dueTime? ' · '+t.dueTime : ''}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTaskList(list, emptyMsg){
+  if(!list || !list.length) return `<div class="empty-state">${emptyMsg}</div>`;
+  return `<div class="task-list">${list.map(renderTaskCard).join('')}</div>`;
+}
+
+/* ============================================================
+   MY TASKS
+============================================================ */
+function filteredTasks(){
+  const f = state.filters;
+  return state.tasks.filter(t=>{
+    if(f.search && !(t.name.toLowerCase().includes(f.search.toLowerCase()) || (t.description||'').toLowerCase().includes(f.search.toLowerCase()) || (t.subject||'').toLowerCase().includes(f.search.toLowerCase()))) return false;
+    if(f.category!=='all' && t.category!==f.category) return false;
+    if(f.priority!=='all' && t.priority!==f.priority) return false;
+    if(f.status!=='all' && t.status!==f.status) return false;
+    if(f.subject!=='all' && t.subject!==f.subject) return false;
+    if(f.due==='today' && t.dueDate!==todayStr()) return false;
+    if(f.due==='week' && !within7Days(t.dueDate)) return false;
+    if(f.due==='overdue' && !isOverdue(t)) return false;
+    if(f.due==='nodate' && t.dueDate) return false;
+    return true;
+  }).sort((a,b)=> (a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+}
+
+function renderTasksView(){
+  const subjects = [...new Set(state.tasks.map(t=>t.subject).filter(Boolean))];
+  const list = filteredTasks();
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="page-title serif">My Tasks</div>
+        <div class="page-sub">${list.length} of ${state.tasks.length} tasks shown</div>
+      </div>
+      <button class="btn btn-primary" data-action="open-add">+ Add Task</button>
+    </div>
+
+    <div class="filters-bar">
+      <input type="text" placeholder="Search tasks…" data-filter="search" value="${esc(state.filters.search)}" />
+      <select data-filter="category">
+        <option value="all">All categories</option>
+        ${CATEGORIES.map(c=>`<option value="${c.key}" ${state.filters.category===c.key?'selected':''}>${c.emoji} ${c.label}</option>`).join('')}
+      </select>
+      <select data-filter="priority">
+        <option value="all">All priorities</option>
+        ${PRIORITIES.map(p=>`<option value="${p.key}" ${state.filters.priority===p.key?'selected':''}>${p.emoji} ${p.label}</option>`).join('')}
+      </select>
+      <select data-filter="status">
+        <option value="all">All statuses</option>
+        ${STATUSES.map(s=>`<option value="${s.key}" ${state.filters.status===s.key?'selected':''}>${s.emoji} ${s.label}</option>`).join('')}
+      </select>
+      <select data-filter="subject">
+        <option value="all">All subjects</option>
+        ${subjects.map(s=>`<option value="${esc(s)}" ${state.filters.subject===s?'selected':''}>${esc(s)}</option>`).join('')}
+      </select>
+      <select data-filter="due">
+        <option value="all">Any due date</option>
+        <option value="today" ${state.filters.due==='today'?'selected':''}>Due today</option>
+        <option value="week" ${state.filters.due==='week'?'selected':''}>Due this week</option>
+        <option value="overdue" ${state.filters.due==='overdue'?'selected':''}>Overdue</option>
+        <option value="nodate" ${state.filters.due==='nodate'?'selected':''}>No due date</option>
+      </select>
+    </div>
+
+    ${renderTaskList(list, state.tasks.length === 0 ? 'No tasks added yet. Click "+ Add Task" to create your first task.' : 'No tasks match these filters.')}
+  `;
+}
+
+/* ============================================================
+   CALENDAR
+============================================================ */
+function renderCalendar(){
+  const {tab, month, year, selectedDate} = state.calendar;
+  const first = new Date(year, month, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const monthName = first.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
+
+  const byDate = {};
+  state.tasks.forEach(t=>{ if(t.dueDate){ (byDate[t.dueDate] = byDate[t.dueDate]||[]).push(t); } });
+
+  let cells = '';
+  const totalCells = Math.ceil((startDow + daysInMonth)/7)*7;
+  for(let i=0;i<totalCells;i++){
+    const dayNum = i - startDow + 1;
+    let cellDate, muted=false, dnum;
+    if(dayNum<1){ dnum = daysInPrevMonth+dayNum; muted=true; cellDate=null; }
+    else if(dayNum>daysInMonth){ dnum = dayNum-daysInMonth; muted=true; cellDate=null; }
+    else { dnum = dayNum; cellDate = `${year}-${String(month+1).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`; }
+    const isToday = cellDate === todayStr();
+    const isSel = cellDate === selectedDate;
+    const dayTasks = cellDate ? (byDate[cellDate]||[]) : [];
+    cells += `<div class="cal-cell ${muted?'muted':''} ${isToday?'today':''} ${isSel?'selected':''}" ${cellDate?`data-action="cal-select" data-date="${cellDate}"`:''}>
+      <div class="dnum">${dnum}</div>
+      <div class="cal-dots">${dayTasks.slice(0,5).map(t=>`<div class="cal-dot" style="background:${t.priority==='high'?'var(--red)':t.priority==='medium'?'var(--yellow)':'var(--green)'}"></div>`).join('')}</div>
+    </div>`;
+  }
+
+  let listTitle, listTasks;
+  if(tab==='today'){ listTitle="Today"; listTasks = state.tasks.filter(t=>t.dueDate===todayStr()); }
+  else if(tab==='week'){ listTitle="This week"; listTasks = state.tasks.filter(t=>within7Days(t.dueDate)); }
+  else { listTitle = fmtDateLong(selectedDate); listTasks = state.tasks.filter(t=>t.dueDate===selectedDate); }
+
+  return `
+    <div class="page-title serif">Calendar</div>
+    <div class="page-sub">Tap a day to see what's due.</div>
+
+    <div class="cal-head">
+      <div class="cal-nav">
+        <button class="btn btn-ghost btn-sm" data-action="cal-prev">←</button>
+        <strong class="mono" style="font-size:13.5px;">${monthName}</strong>
+        <button class="btn btn-ghost btn-sm" data-action="cal-next">→</button>
+      </div>
+      <div class="cal-tabs">
+        <button class="${tab==='today'?'active':''}" data-action="cal-tab" data-tab="today">Today</button>
+        <button class="${tab==='week'?'active':''}" data-action="cal-tab" data-tab="week">This week</button>
+        <button class="${tab==='month'?'active':''}" data-action="cal-tab" data-tab="month">Month</button>
+      </div>
+    </div>
+
+    <div class="cal-grid">
+      ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
+      ${cells}
+    </div>
+
+    <div class="section-head"><h3>${listTitle}</h3></div>
+    ${renderTaskList(listTasks, 'Nothing scheduled for this day.')}
+  `;
+}
+
+/* ============================================================
+   SUBJECTS / PROGRESS
+============================================================ */
+function renderSubjects(){
+  const bySubj = {};
+  state.tasks.forEach(t=>{
+    const key = t.subject || '(No subject)';
+    if(!bySubj[key]) bySubj[key] = {total:0, done:0};
+    bySubj[key].total++;
+    if(t.status==='completed') bySubj[key].done++;
+  });
+  const rows = Object.entries(bySubj).map(([name,v])=>({name, pct: v.total? Math.round(v.done/v.total*100):0, total:v.total, done:v.done}))
+    .sort((a,b)=>b.total-a.total);
+
+  const totalTasks = state.tasks.length;
+  const totalDone = state.tasks.filter(t=>t.status==='completed').length;
+  const overallPct = totalTasks ? Math.round(totalDone/totalTasks*100) : 0;
+
+  return `
+    <div class="page-title serif">Progress</div>
+    <div class="page-sub">Semester progress across all subjects and tasks.</div>
+
+    <div class="card" style="padding:20px 22px;margin-top:18px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;">
+        <strong>Semester Progress</strong><span class="mono">${overallPct}% (${totalDone}/${totalTasks})</span>
+      </div>
+      <div class="pbar pbar-lg"><div style="width:${overallPct}%"></div></div>
+    </div>
+
+    <div class="card" style="padding:8px 22px;margin-top:18px;">
+      ${rows.length ? rows.map(r=>`
+        <div class="subj-row">
+          <div class="subj-name">${esc(r.name)}</div>
+          <div class="pbar" style="flex:1;"><div style="width:${r.pct}%"></div></div>
+          <div class="subj-pct">${r.pct}%</div>
+        </div>
+      `).join('') : `<div class="empty-state">No subjects tracked yet. When you add tasks with subjects, progress will appear here.</div>`}
+    </div>
+  `;
+}
+
+/* ============================================================
+   ASSIGNMENT TRACKER
+============================================================ */
+function renderAssignments(){
+  const rows = state.tasks.filter(t=>t.category==='assignments').sort((a,b)=>(a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="page-title serif">Assignment Tracker</div>
+        <div class="page-sub">${rows.length} assignments tracked</div>
+      </div>
+      <button class="btn btn-primary" data-action="open-add-assignment">+ Add Assignment</button>
+    </div>
+
+    <div class="card" style="margin-top:18px;overflow-x:auto;">
+      <table>
+        <thead><tr><th>Assignment</th><th>Subject</th><th>Deadline</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${rows.length ? rows.map(t=>`
+            <tr>
+              <td style="font-weight:600;">${esc(t.name)}</td>
+              <td>${esc(t.subject)||'—'}</td>
+              <td class="mono">${fmtDate(t.dueDate)}</td>
+              <td><span class="badge status-${t.status}">${statusMeta(t.status).emoji} ${statusMeta(t.status).label}</span></td>
+              <td><button class="btn btn-ghost btn-sm" data-action="open-edit" data-id="${t.id}">Edit</button></td>
+            </tr>
+          `).join('') : `<tr><td colspan="5"><div class="empty-state">No assignments tracked yet. Click "+ Add Assignment" to add one.</div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ============================================================
+   EXAM PLANNER
+============================================================ */
+function examPrepPct(e){
+  if(!e.topics || !e.topics.length) return 0;
+  return Math.round(e.topics.filter(t=>t.done).length / e.topics.length * 100);
+}
+
+function renderExams(){
+  const exams = [...state.exams].sort((a,b)=>(a.examDate||'9999').localeCompare(b.examDate||'9999'));
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="page-title serif">Exam Planner</div>
+        <div class="page-sub">Track syllabus coverage for every exam.</div>
+      </div>
+      <button class="btn btn-primary" data-action="open-add-exam">+ Add Exam</button>
+    </div>
+
+    <div style="margin-top:18px;">
+      ${exams.length ? exams.map(e=>{
+        const pct = examPrepPct(e);
+        const df = daysFromToday(e.examDate);
+        return `
+        <div class="exam-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <div style="font-weight:700;font-size:15px;">${esc(e.name)}</div>
+              <div class="page-sub" style="margin-top:2px;">${esc(e.subject)} • ${fmtDate(e.examDate)} ${df!==null? `<span class="mono" style="color:${df<0?'var(--red)':'var(--ink-soft)'}">${df<0? '(past)': df===0?'(today)':`(in ${df}d)`}</span>`:''}</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" data-action="delete-exam" data-id="${e.id}">Delete</button>
+          </div>
+          <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);"><span>Preparation</span><span class="mono">${pct}%</span></div>
+          <div class="pbar"><div style="width:${pct}%"></div></div>
+          <div style="margin-top:12px;">
+            ${(e.topics||[]).map((t,i)=>`
+              <div class="topic-row ${t.done?'done':''}">
+                <input type="checkbox" ${t.done?'checked':''} data-action="toggle-topic" data-exam="${e.id}" data-idx="${i}" />
+                <span>${esc(t.text)}</span>
+              </div>`).join('')}
+          </div>
+          <div class="chip-add" style="margin-top:8px;">
+            <input type="text" placeholder="Add syllabus topic…" data-topic-input="${e.id}" />
+            <button class="btn btn-ghost btn-sm" data-action="add-topic" data-exam="${e.id}">Add</button>
+          </div>
+        </div>`;
+      }).join('') : `<div class="empty-state"><div class="big">📖</div>No exams planned yet. Click "+ Add Exam" to track your syllabus.</div>`}
+    </div>
+  `;
+}
+
+/* ============================================================
+   STUDY TIMER
+============================================================ */
+function renderTimer(){
+  const tm = state.timer;
+  const total = (tm.mode==='study'? tm.studyMins : tm.breakMins)*60;
+  const pct = Math.round(((total - tm.secondsLeft)/total)*100);
+  const mm = String(Math.floor(tm.secondsLeft/60)).padStart(2,'0');
+  const ss = String(tm.secondsLeft%60).padStart(2,'0');
+  return `
+    <div class="page-title serif">Study Timer</div>
+    <div class="page-sub">${tm.studyMins} min focus → ${tm.breakMins} min break. ${tm.cycles} cycle${tm.cycles===1?'':'s'} completed today.</div>
+
+    <div class="timer-wrap">
+      <div class="timer-ring" style="--pct:${pct}">
+        <div class="timer-inner">
+          <div class="timer-time mono">${mm}:${ss}</div>
+          <div class="timer-mode">${tm.mode==='study' ? '🍅 Focus' : '☕ Break'}</div>
+        </div>
+      </div>
+      <div class="timer-controls">
+        <button class="btn btn-primary" data-action="timer-toggle">${tm.running ? 'Pause' : 'Start'}</button>
+        <button class="btn btn-ghost" data-action="timer-reset">Reset</button>
+        <button class="btn btn-ghost" data-action="timer-skip">Skip</button>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:26px;">
+        <div class="field">
+          <label>Focus (min)</label>
+          <input type="number" min="1" max="120" value="${tm.studyMins}" data-action="timer-set-study" style="width:90px;text-align:center;padding:8px;border-radius:8px;border:1px solid var(--line);">
+        </div>
+        <div class="field">
+          <label>Break (min)</label>
+          <input type="number" min="1" max="60" value="${tm.breakMins}" data-action="timer-set-break" style="width:90px;text-align:center;padding:8px;border-radius:8px;border:1px solid var(--line);">
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function timerTick(){
+  const tm = state.timer;
+  if(tm.secondsLeft>0){ tm.secondsLeft--; }
+  else{
+    if(tm.mode==='study'){ tm.cycles++; tm.mode='break'; tm.secondsLeft = tm.breakMins*60; }
+    else{ tm.mode='study'; tm.secondsLeft = tm.studyMins*60; }
+  }
+  if(state.view==='timer') updateTimerDom();
+}
+
+function updateTimerDom(){
+  const tm = state.timer;
+  const total = (tm.mode==='study'? tm.studyMins : tm.breakMins)*60;
+  const pct = Math.round(((total - tm.secondsLeft)/total)*100);
+  const mm = String(Math.floor(tm.secondsLeft/60)).padStart(2,'0');
+  const ss = String(tm.secondsLeft%60).padStart(2,'0');
+  const ring = document.querySelector('.timer-ring');
+  if(ring){
+    ring.style.setProperty('--pct', pct);
+    ring.querySelector('.timer-time').textContent = `${mm}:${ss}`;
+    ring.querySelector('.timer-mode').textContent = tm.mode==='study' ? '🍅 Focus' : '☕ Break';
+  }
+  const sub = document.querySelector('.page-sub');
+  if(sub) sub.textContent = `${tm.studyMins} min focus → ${tm.breakMins} min break. ${tm.cycles} cycle${tm.cycles===1?'':'s'} completed today.`;
+}
+
+/* ============================================================
+   MODAL: ADD / EDIT TASK
+============================================================ */
+function openAddModal(presetCategory){
+  state.modal = { mode:'add', task:{ category: presetCategory||'study', priority:'medium', status:'not-started', recurring:'none' } };
+  render();
+}
+
+function openEditModal(id){
+  const task = state.tasks.find(t=>t.id===id);
+  if(!task) return;
+  state.modal = { mode:'edit', task };
+  render();
+}
+
+function closeModal(){ state.modal = null; render(); }
+
+function renderModal(){
+  if(state.modal.mode === 'add-exam'){
+    return `<div class="overlay" data-action="overlay-close"></div>`;
+  }
+  const {mode, task} = state.modal;
+  const subjects = [...new Set(state.tasks.map(t=>t.subject).filter(Boolean))];
+  return `
+  <div class="overlay" data-action="overlay-close">
+    <div class="modal" data-stop>
+      <h2 class="serif">${mode==='edit' ? 'Edit Task' : 'Add a Task'}</h2>
+      <form id="task-form">
+        <div class="field">
+          <label>Task name</label>
+          <input type="text" name="name" required value="${esc(task.name||'')}" placeholder="e.g. Complete Java assignment" />
+        </div>
+        <div class="field">
+          <label>Description / notes</label>
+          <textarea name="description" placeholder="Details about this task…">${esc(task.description||'')}</textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Subject</label>
+            <input type="text" name="subject" list="subject-list" value="${esc(task.subject||'')}" placeholder="e.g. DBMS" />
+            <datalist id="subject-list">${subjects.map(s=>`<option value="${esc(s)}">`).join('')}</datalist>
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select name="category">
+              ${CATEGORIES.map(c=>`<option value="${c.key}" ${task.category===c.key?'selected':''}>${c.emoji} ${c.label}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Due date</label>
+            <input type="date" name="dueDate" value="${task.dueDate||''}" />
+          </div>
+          <div class="field">
+            <label>Due time</label>
+            <input type="time" name="dueTime" value="${task.dueTime||''}" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Priority</label>
+          <div class="pri-picker">
+            ${PRIORITIES.map(p=>`<button type="button" class="${task.priority===p.key?'sel-'+p.key:''}" data-pri="${p.key}">${p.emoji} ${p.label}</button>`).join('')}
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Status</label>
+            <select name="status">
+              ${STATUSES.map(s=>`<option value="${s.key}" ${task.status===s.key?'selected':''}>${s.emoji} ${s.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>Repeat</label>
+            <select name="recurring">
+              <option value="none" ${task.recurring==='none'?'selected':''}>Does not repeat</option>
+              <option value="daily" ${task.recurring==='daily'?'selected':''}>Daily</option>
+              <option value="weekly" ${task.recurring==='weekly'?'selected':''}>Weekly</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Links (comma separated — Drive, PDF, article URLs)</label>
+          <input type="text" name="links" value="${esc((task.links||[]).join(', '))}" placeholder="https://…" />
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <textarea name="notes" placeholder="Extra notes for this task…">${esc(task.notes||'')}</textarea>
+        </div>
+
+        <div class="modal-actions">
+          <div>
+            ${mode==='edit' ? `<button type="button" class="btn btn-danger btn-sm" data-action="delete-task" data-id="${task.id}">Delete task</button>` : '<span></span>'}
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn btn-ghost" data-action="close-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">${mode==='edit' ? 'Save changes' : 'Add task'}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   MODAL: ADD EXAM
+============================================================ */
+function openAddExamModal(){
+  state.modal = { mode:'add-exam' };
+  render();
+  setTimeout(()=>{
+    const overlay = document.querySelector('.overlay');
+    if(!overlay) return;
+    overlay.innerHTML = `
+    <div class="modal" data-stop>
+      <h2 class="serif">Add Exam</h2>
+      <form id="exam-form">
+        <div class="field"><label>Exam name</label><input type="text" name="name" required placeholder="e.g. DBMS Mid-Sem"/></div>
+        <div class="field-row">
+          <div class="field"><label>Subject</label><input type="text" name="subject" placeholder="e.g. DBMS"/></div>
+          <div class="field"><label>Exam date</label><input type="date" name="examDate"/></div>
+        </div>
+        <div class="field"><label>Syllabus topics (one per line)</label><textarea name="topics" placeholder="Normalization&#10;Transactions&#10;Indexing" style="min-height:90px;"></textarea></div>
+        <div class="modal-actions">
+          <span></span>
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="btn btn-ghost" data-action="close-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add exam</button>
+          </div>
+        </div>
+      </form>
+    </div>`;
+    bindExamFormEvents();
+  },0);
+}
+
+function bindExamFormEvents(){
+  const overlay = document.querySelector('.overlay');
+  if(!overlay) return;
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
+  const stopBox = overlay.querySelector('[data-stop]');
+  if(stopBox) stopBox.addEventListener('click', e=>e.stopPropagation());
+  const closeBtn = overlay.querySelector('[data-action="close-modal"]');
+  if(closeBtn) closeBtn.addEventListener('click', closeModal);
+  const examForm = overlay.querySelector('#exam-form');
+  if(examForm) examForm.addEventListener('submit', async e=>{
+    e.preventDefault();
+    const f = e.target;
+    const topics = f.topics.value.split('\n').map(s=>s.trim()).filter(Boolean).map(text=>({text, done:false}));
+    const newExam = { id:uid(), name:f.name.value.trim(), subject:f.subject.value.trim(), examDate:f.examDate.value, topics, username: state.session.username };
+    state.exams.push(newExam);
+    await saveExamToDB(newExam);
+    closeModal();
+    state.view = 'exams';
+    render();
+  });
+}
+
+/* ============================================================
+   EVENT BINDING
+============================================================ */
+function bindEvents(){
+  document.querySelectorAll('[data-nav]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.view = el.dataset.nav; render(); });
+  });
+
+  document.querySelectorAll('[data-action]').forEach(el=>{
+    const action = el.dataset.action;
+    if(action==='open-add') el.addEventListener('click', ()=>openAddModal());
+    if(action==='open-add-assignment') el.addEventListener('click', ()=>openAddModal('assignments'));
+    if(action==='open-edit') el.addEventListener('click', ()=>openEditModal(el.dataset.id));
+    if(action==='cycle-status') el.addEventListener('click', (e)=>{ e.stopPropagation(); cycleStatus(el.dataset.id); });
+    if(action==='delete-task') el.addEventListener('click', ()=>deleteTask(el.dataset.id));
+    if(action==='close-modal') el.addEventListener('click', closeModal);
+    if(action==='overlay-close') el.addEventListener('click', (e)=>{ if(e.target===el) closeModal(); });
+    if(action==='reset-data') el.addEventListener('click', resetAllData);
+    if(action==='logout') el.addEventListener('click', logoutUser);
+    if(action==='export-db') el.addEventListener('click', exportDatabaseBackup);
+    if(action==='import-db') el.addEventListener('click', triggerImportDatabase);
+
+    if(action==='cal-prev') el.addEventListener('click', ()=>{ let {month,year}=state.calendar; month--; if(month<0){month=11;year--;} state.calendar.month=month; state.calendar.year=year; render(); });
+    if(action==='cal-next') el.addEventListener('click', ()=>{ let {month,year}=state.calendar; month++; if(month>11){month=0;year++;} state.calendar.month=month; state.calendar.year=year; render(); });
+    if(action==='cal-tab') el.addEventListener('click', ()=>{ state.calendar.tab = el.dataset.tab; render(); });
+    if(action==='cal-select') el.addEventListener('click', ()=>{ state.calendar.selectedDate = el.dataset.date; state.calendar.tab='month'; render(); });
+
+    if(action==='open-add-exam') el.addEventListener('click', openAddExamModal);
+    if(action==='delete-exam') el.addEventListener('click', async ()=>{ 
+      const id = el.dataset.id;
+      state.exams = state.exams.filter(x=>x.id!==id); 
+      await removeExamFromDB(id); 
+      render(); 
+    });
+    if(action==='toggle-topic') el.addEventListener('change', async ()=>{
+      const exam = state.exams.find(x=>x.id===el.dataset.exam);
+      if(exam && exam.topics[el.dataset.idx]){
+        exam.topics[el.dataset.idx].done = el.checked;
+        await saveExamToDB(exam);
+        render();
+      }
+    });
+    if(action==='add-topic') el.addEventListener('click', async ()=>{
+      const input = document.querySelector(`[data-topic-input="${el.dataset.exam}"]`);
+      const val = input.value.trim();
+      if(!val) return;
+      const exam = state.exams.find(x=>x.id===el.dataset.exam);
+      if(exam){
+        exam.topics.push({text:val, done:false});
+        await saveExamToDB(exam);
+        render();
+      }
+    });
+
+    if(action==='timer-toggle') el.addEventListener('click', toggleTimer);
+    if(action==='timer-reset') el.addEventListener('click', resetTimer);
+    if(action==='timer-skip') el.addEventListener('click', skipTimer);
+    if(action==='timer-set-study') el.addEventListener('change', ()=>{ state.timer.studyMins = Math.max(1, parseInt(el.value)||25); if(state.timer.mode==='study' && !state.timer.running) state.timer.secondsLeft = state.timer.studyMins*60; render(); });
+    if(action==='timer-set-break') el.addEventListener('change', ()=>{ state.timer.breakMins = Math.max(1, parseInt(el.value)||5); if(state.timer.mode==='break' && !state.timer.running) state.timer.secondsLeft = state.timer.breakMins*60; render(); });
+  });
+
+  // Priority buttons
+  document.querySelectorAll('[data-pri]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const f = document.getElementById('task-form');
+      if(f) f._priority = btn.dataset.pri;
+      document.querySelectorAll('[data-pri]').forEach(b=>{ b.className=''; });
+      PRIORITIES.forEach(p=>{
+        const b = document.querySelector(`[data-pri="${p.key}"]`);
+        if(p.key===btn.dataset.pri) b.className='sel-'+p.key;
+      });
+    });
+  });
+
+  // Filters
+  document.querySelectorAll('[data-filter]').forEach(el=>{
+    const evt = el.tagName==='SELECT' ? 'change' : 'input';
+    el.addEventListener(evt, ()=>{ state.filters[el.dataset.filter] = el.value; render(); });
+  });
+
+  // Task form submission
+  const form = document.getElementById('task-form');
+  if(form){
+    form._priority = state.modal.task.priority || 'medium';
+    const initBtn = document.querySelector(`[data-pri="${form._priority}"]`);
+    if(initBtn) initBtn.className = 'sel-'+form._priority;
+    form.addEventListener('submit', async e=>{
+      e.preventDefault();
+      const ok = await saveTaskFromForm(form);
+      if(ok){ closeModal(); }
+    });
+  }
+
+  // Stop modal box click propagation
+  const stopEl = document.querySelector('[data-stop]');
+  if(stopEl) stopEl.addEventListener('click', e=>e.stopPropagation());
+}
+
+/* ============================================================
+   TIMER CONTROLS
+============================================================ */
+function toggleTimer(){
+  const tm = state.timer;
+  tm.running = !tm.running;
+  if(tm.running){
+    tm.intervalId = setInterval(timerTick, 1000);
+  } else {
+    clearInterval(tm.intervalId);
+  }
+  render();
+}
+
+function resetTimer(){
+  const tm = state.timer;
+  clearInterval(tm.intervalId);
+  tm.running = false;
+  tm.mode = 'study';
+  tm.secondsLeft = tm.studyMins*60;
+  render();
+}
+
+function skipTimer(){
+  const tm = state.timer;
+  if(tm.mode==='study'){ tm.cycles++; tm.mode='break'; tm.secondsLeft = tm.breakMins*60; }
+  else{ tm.mode='study'; tm.secondsLeft = tm.studyMins*60; }
+  render();
+}
+
+/* ============================================================
+   BACKUP & RESTORE
+============================================================ */
+async function exportDatabaseBackup(){
+  try {
+    const data = await DB.exportJSON();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ledger-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error exporting database backup: ' + e.message);
+  }
+}
+
+function triggerImportDatabase(){
+  const fileInput = document.getElementById('db-import-file');
+  fileInput.value = '';
+  fileInput.onchange = async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      if(!confirm('Importing this backup will replace current database records. Proceed?')) return;
+      await DB.importJSON(json);
+      alert('Database restored successfully! Reloading...');
+      window.location.reload();
+    } catch(err) {
+      alert('Failed to import database: ' + err.message);
+    }
+  };
+  fileInput.click();
+}
+
+/* ============================================================
+   RESET
+============================================================ */
+async function resetAllData(){
+  if(!confirm('This will permanently delete all tasks and exams in your database for this account. Continue?')) return;
+  const username = state.session.username;
+  
+  const [tasks, exams] = await Promise.all([
+    DB.getAllByIndex('tasks', 'username', username),
+    DB.getAllByIndex('exams', 'username', username)
+  ]);
+  
+  for(const t of tasks) await DB.delete('tasks', t.id);
+  for(const e of exams) await DB.delete('exams', e.id);
+
+  state.tasks = [];
+  state.exams = [];
+  render();
+}
+
+/* ============================================================
+   INIT & SESSION MANAGEMENT
+============================================================ */
+async function init(){
+  await DB.init();
+
+  // Clear any old sample tasks that were auto-inserted in previous sessions
+  try {
+    const allTasks = await DB.getAll('tasks');
+    const sampleNames = [
+      'Complete Java assignment',
+      'Revise DBMS normalization',
+      'Finish Python project',
+      'Practice aptitude',
+      'SQL Lab submission'
+    ];
+    for (const t of allTasks) {
+      if (sampleNames.includes(t.name)) {
+        await DB.delete('tasks', t.id);
+      }
+    }
+  } catch(e){}
+
+  const [accounts, sessionMeta] = await Promise.all([
+    DB.getAll('accounts'),
+    DB.get('metadata', 'session')
+  ]);
+  state.accounts = accounts || [];
+
+  if(!state.accounts || state.accounts.length === 0) {
+    state.authMode = 'register';
+  } else {
+    state.authMode = 'login';
+  }
+
+  const session = sessionMeta ? sessionMeta.value : null;
+  if(session && session.username && state.accounts.find(a=>a.username===session.username)){
+    const acc = state.accounts.find(a=>a.username===session.username);
+    await logInAs(acc, false);
+  } else {
+    state.loaded = true;
+    render();
+  }
+}
+
+async function logInAs(account, persistSession){
+  state.session = { loggedIn:true, username:account.username, name:account.name };
+  
+  // Load ONLY real entered tasks from database
+  let [tasks, exams] = await Promise.all([
+    DB.getAllByIndex('tasks', 'username', account.username),
+    DB.getAllByIndex('exams', 'username', account.username),
+  ]);
+
+  state.tasks = tasks || [];
+  state.exams = exams || [];
+  state.userName = account.name;
+  state.loaded = true;
+
+  if(persistSession) {
+    await DB.put('metadata', { key: 'session', value: { username: account.username } });
+  }
+  render();
+}
+
+async function registerUser(name, username, password){
+  username = username.trim().toLowerCase();
+  if(!name.trim() || !username || !password){ 
+    state.authError = 'Fill in every field to create an account.'; 
+    render(); 
+    return; 
+  }
+  
+  const existing = await DB.get('accounts', username);
+  if(existing){ 
+    state.authError = `Username '${username}' is already taken. Please choose another or log in.`; 
+    render(); 
+    return; 
+  }
+
+  const passHash = sha256(password);
+  
+  const account = { 
+    username, 
+    name: name.trim(), 
+    passHash, 
+    createdAt: new Date().toISOString()
+  };
+
+  await DB.put('accounts', account);
+  state.accounts.push(account);
+  state.authError = '';
+  await logInAs(account, true);
+}
+
+async function loginUser(username, password){
+  username = username.trim().toLowerCase();
+  if(!username || !password){
+    state.authError = 'Please enter both your username and password.';
+    render();
+    return;
+  }
+
+  const account = await DB.get('accounts', username);
+  const passHash = sha256(password);
+
+  if(!account){
+    state.authError = `Account '${username}' not found. Click the "Register" tab above to create this account.`;
+    render();
+    return;
+  }
+
+  if(account.passHash !== passHash){
+    state.authError = 'Incorrect password. Please try again.';
+    render();
+    return;
+  }
+
+  state.authError = '';
+  await logInAs(account, true);
+}
+
+async function logoutUser(){
+  clearInterval(state.timer.intervalId);
+  state.timer = { mode:'study', secondsLeft: state.timer.studyMins*60, running:false, cycles:0, intervalId:null, studyMins:25, breakMins:5 };
+  state.session = { loggedIn:false, username:null, name:null };
+  state.tasks = [];
+  state.exams = [];
+  state.view = 'dashboard';
+  await DB.put('metadata', { key: 'session', value: null });
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
